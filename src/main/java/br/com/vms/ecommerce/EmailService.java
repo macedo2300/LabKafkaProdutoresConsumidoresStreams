@@ -1,40 +1,39 @@
 package br.com.vms.ecommerce;
 
-import br.com.vms.ecommerce.model.Order;
 import br.com.vms.ecommerce.service.KafkaConsumerService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.HashMap;
 
-public class FraudDetectorService {
+public class EmailService {
 
     public static void main(String[] args) {
-        var fraudDetectorService = new FraudDetectorService();
-        try(var consumer = new KafkaConsumerService<Order>(
-                FraudDetectorService.class.getSimpleName(),
-                "ECOMMERCE_NEW_ORDER",
-                fraudDetectorService::parse,Order.class,
-                new HashMap<>())){
-            consumer.run();
-        }
 
+        var emailService = new EmailService();
+        try(var service = new KafkaConsumerService(
+                EmailService.class.getSimpleName(),
+                "ECOMMERCE_SEND_EMAIL",
+                emailService::parse,
+                String.class, new HashMap<>())){
+            service.run();
+        }
     }
 
-    private void parse(ConsumerRecord<String, Order> record) {
+    private void parse(ConsumerRecord<String, String> record) {
         System.out.println("-----------------------------------------");
-        System.out.println("Processing new order , checking for fraud");
+        System.out.println("Send email");
         System.out.println("Key: " + record.key());
         System.out.println("Valor: " + record.value());
         System.out.println("Partition: "+ record.partition());
         System.out.println("Offset: " + record.offset());
 
         try {
-            Thread.sleep(5000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             //ignoring
             e.printStackTrace();
         }
-        System.out.println("Order processed");
+        System.out.println("Email send");
     }
 
 

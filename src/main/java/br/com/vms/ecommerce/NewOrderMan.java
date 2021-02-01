@@ -1,36 +1,45 @@
 package br.com.vms.ecommerce;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringSerializer;
+import br.com.vms.ecommerce.model.Email;
+import br.com.vms.ecommerce.model.Order;
+import br.com.vms.ecommerce.service.KafkaProducerService;
 
-import java.util.Map;
-import java.util.Properties;
+import java.math.BigDecimal;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 public class NewOrderMan {
 
+    private static final String ECOMMERCE_SEND_EMAIL  = "ECOMMERCE_SEND_EMAIL";
+    private static final String ECOMMERCE_NEW_ORDER   = "ECOMMERCE_NEW_ORDER";
+
     public static void main(String[] args) throws ExecutionException, InterruptedException {
-
-        var producer = new KafkaProducer<String,String>(properties());
-        var value = "741258,01478520,1563";
-        var record = new ProducerRecord("ECOMMERCE_NEW_ORDER",value,value);
-        producer.send(record,(data, ex) -> {
-            if(ex != null){
-                ex.printStackTrace();
-                return;
+        try (var orderKafkaProducerService = new KafkaProducerService<Order>()){
+            try (var emailKafkaProducerService = new KafkaProducerService<Email>()){
+                for(int i = 0; i < 10; i++){
+                    sendEcommerceNewOrder(orderKafkaProducerService);
+                    sendEcommerceSendEmail(emailKafkaProducerService);
+                }
             }
-            System.out.println("sucesso enviado "+data.topic()+ "::: partition:"+ data.partition()+"/ offset:"+data.offset()+"/ timestamp:"+data.timestamp());
-        }).get();
+        }
     }
 
-    private static Properties properties() {
-        var properties = new Properties();
-        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"localhost:9092");
-        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        return properties;
+    private static void sendEcommerceSendEmail(KafkaProducerService kafkaProducerService) throws InterruptedException, ExecutionException {
+        var key = UUID.randomUUID().toString();
+        var email = "Thank you for your order89!! We are  processing your order!";
+        kafkaProducerService.send(ECOMMERCE_SEND_EMAIL,key,email);
     }
+
+    private static void sendEcommerceNewOrder(KafkaProducerService kafkaProducerService) throws InterruptedException, ExecutionException {
+        var userId = UUID.randomUUID().toString();
+        var orderId = UUID.randomUUID().toString();
+        var amount = new BigDecimal(Math.random() * 5000 + 1);
+
+        var order = new Order(userId, orderId, amount);
+        kafkaProducerService.send(ECOMMERCE_NEW_ORDER,userId,order);
+    }
+
+
+
+
 }
